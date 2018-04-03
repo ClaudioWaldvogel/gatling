@@ -72,7 +72,8 @@ object ValidatorCheckBuilder {
 case class ValidatorCheckBuilder[C <: Check[R], R, P, X](
     extender:  Extender[C, R],
     preparer:  Preparer[R, P],
-    extractor: Expression[Extractor[P, X]]
+    extractor: Expression[Extractor[P, X]],
+    errorMsg:  Option[String]              = None: Option[String]
 ) {
 
   import ValidatorCheckBuilder._
@@ -112,7 +113,7 @@ case class ValidatorCheckBuilder[C <: Check[R], R, P, X](
     copy(extractor = session => extractor(session).map(transformOptionExtractor(transformation(_, session))))
 
   def validate(validator: Expression[Validator[X]]): CheckBuilder[C, R, P, X] with SaveAs[C, R, P, X] =
-    new CheckBuilder(this, validator) with SaveAs[C, R, P, X]
+    new CheckBuilder(this, validator, errorMsg) with SaveAs[C, R, P, X]
 
   def validate(opName: String, validator: (Option[X], Session) => Validation[Option[X]]): CheckBuilder[C, R, P, X] with SaveAs[C, R, P, X] =
     validate((session: Session) => new Validator[X] {
@@ -131,16 +132,19 @@ case class ValidatorCheckBuilder[C <: Check[R], R, P, X](
   def lessThanOrEqual(expected: Expression[X])(implicit ordering: Ordering[X]) = validate(expected.map(new CompareMatcher("lessThanOrEqual", "less than or equal to", ordering.lteq, _)))
   def greaterThan(expected: Expression[X])(implicit ordering: Ordering[X]) = validate(expected.map(new CompareMatcher("greaterThan", "greater than", ordering.gt, _)))
   def greaterThanOrEqual(expected: Expression[X])(implicit ordering: Ordering[X]) = validate(expected.map(new CompareMatcher("greaterThanOrEqual", "greater than or equal to", ordering.gteq, _)))
+  def errorMessage(msg: String): ValidatorCheckBuilder[C, R, P, X] = copy(errorMsg = Some(msg))
+
 }
 
 case class CheckBuilder[C <: Check[R], R, P, X](
     validatorCheckBuilder: ValidatorCheckBuilder[C, R, P, X],
     validator:             Expression[Validator[X]],
+    errorMsg:              Option[String],
     saveAs:                Option[String]                    = None
 ) {
 
   def build: C = {
-    val base = CheckBase(validatorCheckBuilder.preparer, validatorCheckBuilder.extractor, validator, saveAs)
+    val base = CheckBase(validatorCheckBuilder.preparer, validatorCheckBuilder.extractor, validator, errorMsg, saveAs)
     validatorCheckBuilder.extender(base)
   }
 }
