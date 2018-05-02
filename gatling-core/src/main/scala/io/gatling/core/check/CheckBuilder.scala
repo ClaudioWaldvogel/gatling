@@ -73,7 +73,7 @@ case class ValidatorCheckBuilder[C <: Check[R], R, P, X](
     extender:  Extender[C, R],
     preparer:  Preparer[R, P],
     extractor: Expression[Extractor[P, X]],
-    errorMsg:  Option[String]              = None: Option[String]
+    errorMsg:  Option[Expression[String]]  = None
 ) {
 
   import ValidatorCheckBuilder._
@@ -132,14 +132,14 @@ case class ValidatorCheckBuilder[C <: Check[R], R, P, X](
   def lessThanOrEqual(expected: Expression[X])(implicit ordering: Ordering[X]) = validate(expected.map(new CompareMatcher("lessThanOrEqual", "less than or equal to", ordering.lteq, _)))
   def greaterThan(expected: Expression[X])(implicit ordering: Ordering[X]) = validate(expected.map(new CompareMatcher("greaterThan", "greater than", ordering.gt, _)))
   def greaterThanOrEqual(expected: Expression[X])(implicit ordering: Ordering[X]) = validate(expected.map(new CompareMatcher("greaterThanOrEqual", "greater than or equal to", ordering.gteq, _)))
-  def errorMessage(msg: String): ValidatorCheckBuilder[C, R, P, X] = copy(errorMsg = Some(msg))
+  def errorMessage(msg: Expression[String]): ValidatorCheckBuilder[C, R, P, X] = copy(errorMsg = Some(msg))
 
 }
 
 case class CheckBuilder[C <: Check[R], R, P, X](
     validatorCheckBuilder: ValidatorCheckBuilder[C, R, P, X],
     validator:             Expression[Validator[X]],
-    errorMsg:              Option[String],
+    errorMsg:              Option[Expression[String]],
     saveAs:                Option[String]                    = None
 ) {
 
